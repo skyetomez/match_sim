@@ -5,6 +5,8 @@ from time import sleep
 from random import Random
 
 from playerhandler import PlayerHandler
+from persons import Person
+
 
 # Screen constants
 SCREEN_HEIGHT = 800
@@ -16,13 +18,13 @@ MID_X = SCREEN_WIDTH // 2
 CENTER = (SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2)
 size = (SCREEN_WIDTH, SCREEN_HEIGHT)
 WHITE = (255, 255, 255)
-
+PINK = (222, 49, 99)
 
 TESTING = True
 
 # Probability constants
-LOWER = 30.0
-UPPER = 30.0
+UPPER = LOWER = 1.0
+PROB_DIST = Random()
 
 
 class Game(PlayerHandler):
@@ -35,7 +37,7 @@ class Game(PlayerHandler):
         pygame.init()
         # -------- rect and player bookkeeping --------------
         super().__init__()
-        self._dirtyRects: list[str] = list()
+        self._collisions: list[tuple[str, str]] = list()
 
         # ----------------- initial drawings ----------------
         return None
@@ -43,19 +45,25 @@ class Game(PlayerHandler):
     # --------------------- public methods -------------------
 
     def start(self) -> None:
-        self._generatePlayers(10000, "A")
+        self._generatePlayers(100, "A")
+        self._generatePlayers(100, "B")
+        self._generatePlayers(100, "C")
+        self._generatePlayers(100, "D")
 
-        tmp._screen.fill("WHITE")
+        self._screen.fill(WHITE)
 
-        for _player in self._playerRectPool.values():
+        for _id, _player in self._playerRectPool.items():
 
-            center = (MID_X, MID_Y)
+            coord = self._initPositionRoll()
+
+            self._playerPool[_id].position = coord
+
+            rect_center = coord
 
             surf, rect = _player[0], _player[1]
-            rect.center = center
+            rect.center = rect_center
 
             self._screen.blit(surf, rect)
-            print("surf", surf, "rect:", rect, "pos", center)
 
         pygame.display.flip()
 
@@ -83,69 +91,112 @@ class Game(PlayerHandler):
 
     def move(self) -> None:
         """Move each character some amount between upper and lower wrap around screen"""
-        for _id, _player in self._playerPool.items():
+        for _id, _player in self._playerRectPool.items():
 
-            delta_x, delta_y = self._movementamount()
-            _player._xpos += delta_x
-            _player._ypos += delta_y
-            x, y = (
-                _player._xpos % SCREEN_WIDTH,
-                _player._ypos % SCREEN_HEIGHT,
-            )
+            delta_x, delta_y = self._movementamount()  # move amonut
 
-            new_position = tuple([x, y])
+            x_old, y_old = self._playerPool[_id].position  # get old position
+            x_old += delta_x  # incr x
+            y_old += delta_y  # incr y
+            new_coor = (x_old, y_old)  # init new position
+            self._playerPool[_id].position = new_coor  # set new positoon
 
-            surf, rect = self._playerRectPool[_id]
-            rect = rect.move(new_position)
-
-            rect.center = new_position
-
-            self._screen.blit(surf, rect)
-            print("surf", surf, "rect:", rect, "pos", new_position)
-            self._dirtyRects.append(_id)
+            _, rect = _player
+            rect = rect.move(new_coor)
+            rect.center = new_coor
+            _player[-1] = rect  # overwrite old rect
 
         return None
 
     def _checkCollision(self):
-        # for each type check if they colliding/same spot
-        pass
+        """Check if Rects are colliding and return list of collided rects"""
+        for _id, _player in self._playerRectPool.items():
+            surf, rect = _player
+            for _idwall, _playerwall in self._playerRectPool.items():
+                _wall, wallrect = _playerwall
+                if rect != wallrect and rect.colliderect(wallrect):
+                    # surf.fill(PINK)
+                    # wall.fill(PINK)
+                    # self._resmovePlayers([_id, _idwall])
+                    collision_pair = tuple([_id, _idwall])
+                    self._collisions.append(collision_pair)
 
-    def _speedDate(self):
-        # if compatible roll die to see if date or not
-        # if compatible leave screen as not in pool anymore.
-        # else move
-        pass
+    def speedDate(self) -> None:
+        """ "Roll to see if the rects stay on the screen or leave the screen"""
+
+        self._checkCollision()
+
+        for collison_pair in set(self._collisions):
+            _id, _idwall = collison_pair
+
+            player1, player2 = self._playerPool[_id], self._playerPool[_idwall]
+            probability = self._getProbabiity(player1, player2)
+
+            answer = self._simulate(probability)
+
+            if answer:
+                surf, _ = self._playerRectPool[_id]
+                wall, _ = self._playerRectPool[_idwall]
+                surf.fill(PINK)
+                wall.fill(PINK)
+                self._collisions.remove(collison_pair)
+
+                return None
+            else:
+                self._collisions.remove(collison_pair)
+                return None
 
     def _checkWin(self):
+        """If screen is empty, win, otherwise lose"""
         # if none on screen win end game
         pass
 
     # ------------------ Graphics ----------------------
-    def _renderDirtyRects(self) -> None:
-        # pass list of dirty rects
-        # self._dirtyRects()
-        # blit background over old location
-        # background surface same size as old object
-        # _move()
-        # draw sprite at new location
-        # pygame.display.update(_dirtyrecs)
-
-        return None
-
     def update(self) -> None:
-        # update screen.
-        # self._screen.blit()
-        # for surect in self._playerRectPool.values():
-        #     surf, rect = surect
-        #     self._screen.blit(surf, rect)
-
+        """Flips dispaly buffer"""
+        for p in self._playerRectPool.values():
+            surf, rect = p
+            self._screen.blit(surf, rect)
+        pygame.display.flip()
         return None
 
     # -------------- utility ------------------------
     def _movementamount(self) -> tuple[float, float]:
-        prob_dist = Random()
-        value = tuple(prob_dist.uniform(a=-LOWER, b=UPPER) for _ in range(2))
+        value = tuple([PROB_DIST.uniform(a=-LOWER, b=UPPER) for _ in range(2)])
         return value
+
+    def _initPositionRoll(self):
+        x_pool = PROB_DIST.randrange(0, SCREEN_WIDTH)
+        y_pool = PROB_DIST.randrange(0, SCREEN_HEIGHT)
+        return x_pool, y_pool
+
+    def _getProbabiity(self, person1: Person, person2: Person) -> float:
+        _type1, _type2 = person1._type, person2._type
+        _sex1, _sex2 = person1._sex, person2._sex
+
+        if _sex1 != _sex2:
+
+            if _type1 != _type2:
+                comp1, comp2 = _type2[4], _type1[4]
+                print("comp1: ", comp1, "comp2", comp2)
+                attr1, attr2 = f"_prob_{comp1}", f"_prob_{comp2}"
+                print("attr1: ", attr1, "attr1", attr2)
+                prob1, prob2 = getattr(person1, attr1), getattr(person2, attr2)
+                print("prob1 : ", prob1, "prob2", prob2)
+
+                return prob1 * prob2
+            else:
+                return 0.0
+        else:
+            return 0.0
+
+    def _simulate(self, probability: float) -> bool:
+        """simulate draw"""
+        draw = PROB_DIST.uniform(0, 1)
+        if draw <= probability:
+            return True
+        else:
+            return False
 
 
 # Test behavior
@@ -162,6 +213,7 @@ if __name__ == "__main__":
         tmp._screen.fill("WHITE")
 
         tmp.move()
+        tmp.speedDate()
+        tmp.update()
 
-        pygame.display.flip()
         tmp._clock.tick(60)

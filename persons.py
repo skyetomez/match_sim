@@ -4,7 +4,7 @@ from string import ascii_uppercase, digits
 
 
 """
-Simplied to people choosing only their min or max preference based on the AYI data.
+Simplfied to people choosing only their min or max preference based on the AYI data.
 
 """
 # ----- constants ------
@@ -58,7 +58,7 @@ class Person:
         return f"{self._type[-1]}_{self._id}"
 
     def __hash__(self) -> int:
-        return hash(self._id)
+        return hash(self._id)  # instead of making id manually can use function id()
 
     def __eq__(self, __o: object) -> bool:
         if not isinstance(__o, type(self)):
@@ -127,8 +127,8 @@ class Person:
         """Made to make classes look prettier"""
         self._sex = None
         self._id = None
-        self._xpos = 0.0 % SCREEN_WIDTH
-        self._ypos = 0.0 % SCREEN_HEIGHT
+        self._xpos = 0.0
+        self._ypos = 0.0
         self._status = 1
         self.id
         self.sex
@@ -137,15 +137,17 @@ class Person:
     def _interactionprobability(self) -> None:
         """Utility to set row probabilities given gender"""
         if self._sex == "M":
-            self._prob_A = 0.0
-            self._prob_B = 0.0
-            self._prob_C = 0.0
-            self._prob_D = 0.0
+            self._prob_A = 0.22
+            self._prob_B = 0.23
+            self._prob_C = 0.71
+            self._prob_D = 0.30
+            return None
         else:
-            self._prob_A = 1.0
-            self._prob_B = 1.0
-            self._prob_C = 1.0
-            self._prob_D = 1.0
+            self._prob_A = 0.21
+            self._prob_B = 0.56
+            self._prob_C = 0.38
+            self._prob_D = 0.26
+            return None
 
 
 class TypeA(Person):

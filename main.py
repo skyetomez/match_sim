@@ -1,9 +1,7 @@
-import menus
-import game
-import persons
+# import menus TODO
 import utility
-import pygame
-import sys
+import yaml
+from game import Game
 
 """
 This is a visual simulation based on the data from the AYI facebook app that
@@ -13,12 +11,28 @@ was brought to my attention and this is a visualizaiton of its long term behavio
 """
 
 
-WIN_STATUS = False
+SCREEN_HEIGHT = 800
+SCREEN_WIDTH = 600
+CENTER = (SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2)
+WIN_SIZE = (SCREEN_WIDTH, SCREEN_HEIGHT)
+
+WIN = False
 
 
 if __name__ == "__main__":
 
-    while not WIN_STATUS:
+    size = WIN_SIZE
+    game = Game(size)
 
-        print("This is the main loop")
-        WIN_STATUS = True
+    game.start()
+
+    while not WIN:
+        game._keyControls()
+
+        game._screen.fill("WHITE")
+
+        game.move()
+        game.speedDate()
+        game.update()
+
+        game._clock.tick(60)
