@@ -3,7 +3,7 @@ import pygame
 from pygame.locals import *
 from time import sleep
 from random import Random
-
+from collections import Counter
 from playerhandler import PlayerHandler
 from persons import Person
 
@@ -38,7 +38,7 @@ class Game(PlayerHandler):
         # -------- rect and player bookkeeping --------------
         super().__init__()
         self._collisions: list[tuple[str, str]] = list()
-
+        self._lovelist: Counter = Counter()
         # ----------------- initial drawings ----------------
         return None
 
@@ -84,6 +84,7 @@ class Game(PlayerHandler):
 
     def _clexit(self):
         """close and exit"""
+        print(self._lovelist)
         pygame.quit()
         sys.exit()
 
@@ -140,7 +141,12 @@ class Game(PlayerHandler):
                 surf.fill(PINK)
                 wall.fill(PINK)
                 self._collisions.remove(collison_pair)
-
+                # add to dict and increase count
+                pair = (
+                    str(self._playerPool[_id]._type),
+                    str(self._playerPool[_idwall]._type),
+                )
+                self._lovelist.update(pair)
                 return None
             else:
                 self._collisions.remove(collison_pair)
